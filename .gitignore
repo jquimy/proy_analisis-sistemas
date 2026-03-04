@@ -1,0 +1,19 @@
+# Variables de entorno (NUNCA subir)
+.env
+
+# Datos persistentes de Docker (generados localmente)
+data/
+
+# Archivos del sistema
+.DS_Store
+Thumbs.db
+
+# Logs locales
+*.log
+
+# Dependencias Node (si se agrega algún script)
+node_modules/
+
+# Archivos temporales
+*.tmp
+*.bak

@@ -1,0 +1,5 @@
+{
+  "_comment": "Exportar este archivo desde n8n una vez construido el Workflow 1 (Ingesta de Ticket).",
+  "name": "WF1 - Ingesta de Ticket",
+  "status": "pendiente_construccion"
+}
