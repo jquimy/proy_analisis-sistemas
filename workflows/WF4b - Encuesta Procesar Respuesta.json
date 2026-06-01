@@ -1,0 +1,215 @@
+{
+  "name": "WF4b - Encuesta Procesar Respuesta",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "encuesta-submit",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "a0d1d93f-d1e3-4e5d-9196-a95ac8e8622c",
+      "name": "Recibir Respuesta Encuesta",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        800,
+        416
+      ],
+      "webhookId": "encuesta-submit-helpdesk"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO encuestas_satisfaccion (id_ticket, calificacion, comentario) VALUES ({{ $json.body.id_ticket }}, '{{ $json.body.calificacion }}', '{{ $json.body.comentario }}') RETURNING *;",
+        "options": {}
+      },
+      "id": "d6f5aca9-8dca-421c-8488-5d0c6c55a62b",
+      "name": "Guardar Encuesta",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.2,
+      "position": [
+        1040,
+        416
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "LvneXKLeflg3RwvY",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT tc.nombre, tc.correo FROM tecnicos tc JOIN tickets tk ON tk.id_tecnico = tc.id_tecnico WHERE tk.id_ticket = {{ $('Recibir Respuesta Encuesta').item.json.body.id_ticket }};",
+        "options": {}
+      },
+      "id": "3d9d1deb-8a46-4351-8e33-5e86cfc48584",
+      "name": "Buscar Técnico del Ticket",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.2,
+      "position": [
+        1280,
+        416
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "LvneXKLeflg3RwvY",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "quimyatjosuesaul@gmail.com",
+        "toEmail": "={{ $json.correo }}",
+        "subject": "=Nueva Calificación para tu atención - Ticket #{{ $('Recibir Respuesta Encuesta').item.json.body.id_ticket }}",
+        "text": "=Hola {{ $json.nombre }},\n\nUn usuario calificó tu atención en el Ticket #{{ $('Recibir Respuesta Encuesta').item.json.body.id_ticket }}.\n\nCalificación: {{ $('Recibir Respuesta Encuesta').item.json.body.calificacion }}\nComentario: {{ $('Recibir Respuesta Encuesta').item.json.body.comentario || 'Sin comentarios adicionales.' }}\n\nSistema Automático Help Desk.",
+        "options": {}
+      },
+      "id": "76bea19c-8b5b-4425-a19c-b6fb47f78862",
+      "name": "Notificar al Técnico",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2,
+      "position": [
+        1520,
+        416
+      ],
+      "webhookId": "dd07de68-b9ca-4e0b-a1fb-8e8d14736477",
+      "credentials": {
+        "smtp": {
+          "id": "r9f9lK9CajmPe1mw",
+          "name": "SMTP account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "<!DOCTYPE html>\n<html lang=\"es\">\n<head>\n  <meta charset=\"UTF-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n  <title>Gracias - Help Desk</title>\n  <style>\n    body { font-family: 'Segoe UI', sans-serif; background: #f0f4f8; display: flex; justify-content: center; align-items: center; min-height: 100vh; }\n    .card { background: #fff; border-radius: 12px; padding: 48px; max-width: 420px; width: 100%; box-shadow: 0 4px 16px rgba(0,0,0,0.1); text-align: center; }\n    .icon { font-size: 3.5rem; margin-bottom: 16px; }\n    h1 { color: #276749; font-size: 1.4rem; margin-bottom: 10px; }\n    p { color: #555; font-size: 0.95rem; line-height: 1.6; }\n    .footer { color: #aaa; font-size: 0.8rem; margin-top: 24px; }\n  </style>\n</head>\n<body>\n  <div class=\"card\">\n    <div class=\"icon\">✅</div>\n    <h1>¡Gracias por tu calificación!</h1>\n    <p>Hemos recibido tu respuesta correctamente.<br>Tu opinión nos ayuda a mejorar el servicio de soporte técnico.</p>\n    <p class=\"footer\">Municipalidad de San Juan Chamelco — Sistema de Help Desk</p>\n  </div>\n</body>\n</html>",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "text/html; charset=utf-8"
+              }
+            ]
+          }
+        }
+      },
+      "id": "4360d0e2-6fca-4037-88e8-1fe61e8a8c31",
+      "name": "Página de Gracias",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1760,
+        416
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "58fc2150-8c3f-42cc-88c1-5ed2c0c90591",
+      "name": "Error Trigger",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        800,
+        688
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO logs_errores (workflow_name, nodo, mensaje_error) VALUES ('WF4b - Encuesta Procesar', '{{ $json.execution.lastNodeExecuted }}', '{{ $json.execution.error.message }}');",
+        "options": {}
+      },
+      "id": "b1b693cb-6000-4f8d-9d01-9181153cf3a3",
+      "name": "Registrar Error",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.2,
+      "position": [
+        1072,
+        688
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "LvneXKLeflg3RwvY",
+          "name": "Postgres account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Recibir Respuesta Encuesta": {
+      "main": [
+        [
+          {
+            "node": "Guardar Encuesta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardar Encuesta": {
+      "main": [
+        [
+          {
+            "node": "Buscar Técnico del Ticket",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar Técnico del Ticket": {
+      "main": [
+        [
+          {
+            "node": "Notificar al Técnico",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notificar al Técnico": {
+      "main": [
+        [
+          {
+            "node": "Página de Gracias",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "Registrar Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "f7ddb3e0-c6d6-4d62-91f8-7df8cae5c6c5",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "88d4a3cce03baefebbceee12fc093e7bfaed210b9853b16b13cd01d89edf431a"
+  },
+  "id": "BtcCoKGa7h1UokLK",
+  "tags": []
+}

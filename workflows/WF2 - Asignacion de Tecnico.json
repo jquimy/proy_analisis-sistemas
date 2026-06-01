@@ -1,0 +1,361 @@
+{
+  "name": "WF2 - Asignacion de Tecnico",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "fd6d3b0c-03f0-4b8c-ac67-4f369e6355e3",
+      "name": "Cada 5 Minutos",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [
+        -5552,
+        896
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM tickets WHERE estado IN ('Pendiente', 'En Espera') ORDER BY fecha_creacion ASC LIMIT 1;",
+        "options": {}
+      },
+      "id": "013a7c14-5bb2-45ee-9d37-c83cb9801bc2",
+      "name": "Buscar Ticket Pendiente",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.2,
+      "position": [
+        -5360,
+        896
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "LvneXKLeflg3RwvY",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.id_ticket }}",
+              "operation": "isNotEmpty"
+            }
+          ]
+        }
+      },
+      "id": "63c9c3be-0ceb-47e6-ba67-44a7f7967583",
+      "name": "¿Hay ticket pendiente?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -5152,
+        896
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM tecnicos WHERE estado = 'Disponible' LIMIT 1;",
+        "options": {}
+      },
+      "id": "f10d2ec9-7cd0-470a-a6ab-1fbfe1e2994e",
+      "name": "Buscar Técnico Disponible",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.2,
+      "position": [
+        -4944,
+        800
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "LvneXKLeflg3RwvY",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.id_tecnico }}",
+              "operation": "isNotEmpty"
+            }
+          ]
+        }
+      },
+      "id": "30760606-1fe0-4658-9cbe-0d3d170a117b",
+      "name": "¿Hay técnico?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -4720,
+        800
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE tickets SET estado = 'Asignado', id_tecnico = {{ $json.id_tecnico }}, fecha_asignacion = NOW() WHERE id_ticket = {{ $('Buscar Ticket Pendiente').item.json.id_ticket }};\nUPDATE tecnicos SET estado = 'Ocupado' WHERE id_tecnico = {{ $json.id_tecnico }};\nINSERT INTO historial_tickets (id_ticket, estado_anterior, estado_nuevo, modificado_por) VALUES ({{ $('Buscar Ticket Pendiente').item.json.id_ticket }}, 'Pendiente', 'Asignado', 'Sistema');",
+        "options": {}
+      },
+      "id": "dc288610-ac41-447e-80a9-0e630dc83a17",
+      "name": "Asignar Ticket",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.2,
+      "position": [
+        -4464,
+        704
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "LvneXKLeflg3RwvY",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE tickets SET estado = 'En Espera' WHERE id_ticket = {{ $('Buscar Ticket Pendiente').item.json.id_ticket }};\nINSERT INTO historial_tickets (id_ticket, estado_anterior, estado_nuevo, modificado_por) VALUES ({{ $('Buscar Ticket Pendiente').item.json.id_ticket }}, 'Pendiente', 'En Espera', 'Sistema');",
+        "options": {}
+      },
+      "id": "052c0fda-8bea-4a9a-a8a1-6e1390f88c82",
+      "name": "Poner en Espera",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.2,
+      "position": [
+        -4464,
+        896
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "LvneXKLeflg3RwvY",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "quimyatjosuesaul@gmail.com",
+        "toEmail": "={{ $('Buscar Ticket Pendiente').item.json.correo_solicitante }}",
+        "subject": "=Técnico Asignado - Ticket #{{ $('Buscar Ticket Pendiente').item.json.id_ticket }}",
+        "text": "=Hola {{ $('Buscar Ticket Pendiente').item.json.nombre_solicitante }},\n\nEl técnico {{ $('Buscar Técnico Disponible').item.json.nombre }} ha sido asignado a tu solicitud.\n\nPronto se pondrá en contacto contigo o visitará tu área.\n\nSaludos,\nEl equipo de Informática.",
+        "options": {}
+      },
+      "id": "65e120db-f9be-41ec-9bca-ee9cacf6046c",
+      "name": "Notificar Solicitante",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2,
+      "position": [
+        -4240,
+        576
+      ],
+      "webhookId": "47d334ba-06db-4541-af75-d7368f0a026e",
+      "credentials": {
+        "smtp": {
+          "id": "r9f9lK9CajmPe1mw",
+          "name": "SMTP account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "quimyatjosuesaul@gmail.com",
+        "toEmail": "={{ $('Buscar Técnico Disponible').item.json.correo }}",
+        "subject": "=NUEVO TICKET ASIGNADO #{{ $('Buscar Ticket Pendiente').item.json.id_ticket }}",
+        "text": "=Hola {{ $('Buscar Técnico Disponible').item.json.nombre }},\n\nSe te ha asignado un nuevo Ticket de Soporte.\n\nDetalles del Ticket:\n- Solicitante: {{ $('Buscar Ticket Pendiente').item.json.nombre_solicitante }}\n- Dirección/Área: {{ $('Buscar Ticket Pendiente').item.json.departamento }}\n- Prioridad: {{ $('Buscar Ticket Pendiente').item.json.prioridad }}\n- Problema: {{ $('Buscar Ticket Pendiente').item.json.descripcion }}\n\nPor favor atiende esta solicitud a la brevedad.\n\nSistema Automático Help Desk.",
+        "options": {}
+      },
+      "id": "49c17aec-8fa3-481a-acd1-1276d9760ff2",
+      "name": "Notificar al Técnico",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2,
+      "position": [
+        -4240,
+        768
+      ],
+      "webhookId": "0e6ff9eb-8e1d-4e5c-bdf0-5656d1904050",
+      "credentials": {
+        "smtp": {
+          "id": "r9f9lK9CajmPe1mw",
+          "name": "SMTP account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "quimyatjosuesaul@gmail.com",
+        "toEmail": "={{ $('Buscar Ticket Pendiente').item.json.correo_solicitante }}",
+        "subject": "=Ticket en Espera #{{ $('Buscar Ticket Pendiente').item.json.id_ticket }}",
+        "text": "=Hola {{ $('Buscar Ticket Pendiente').item.json.nombre_solicitante }},\n\nActualmente todos nuestros técnicos se encuentran ocupados.\n\nTu ticket ha sido puesto en la cola de espera y será atendido apenas se libere un técnico.\n\nGracias por tu paciencia,\nEl equipo de Informática.",
+        "options": {}
+      },
+      "id": "a864f061-2864-47ec-bf3c-7fd15ab03931",
+      "name": "Notificar Espera",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2,
+      "position": [
+        -4240,
+        944
+      ],
+      "webhookId": "09c5b71f-7d64-43f6-8bae-10cc7e9602d8",
+      "credentials": {
+        "smtp": {
+          "id": "r9f9lK9CajmPe1mw",
+          "name": "SMTP account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "id": "f357e3f8-5b7f-4054-bc39-867d99bfb3d4",
+      "name": "Error Trigger",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        -5360,
+        1168
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO logs_errores (workflow_name, nodo, mensaje_error) VALUES ('WF2 - Asignacion de Tecnico', '{{ $json.execution.lastNodeExecuted }}', '{{ $json.execution.error.message }}');",
+        "options": {}
+      },
+      "id": "e84bf3a7-18c2-44d7-90f5-a8d898a48221",
+      "name": "Registrar Error",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.2,
+      "position": [
+        -5184,
+        1168
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "LvneXKLeflg3RwvY",
+          "name": "Postgres account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Cada 5 Minutos": {
+      "main": [
+        [
+          {
+            "node": "Buscar Ticket Pendiente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar Ticket Pendiente": {
+      "main": [
+        [
+          {
+            "node": "¿Hay ticket pendiente?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Hay ticket pendiente?": {
+      "main": [
+        [
+          {
+            "node": "Buscar Técnico Disponible",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar Técnico Disponible": {
+      "main": [
+        [
+          {
+            "node": "¿Hay técnico?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Hay técnico?": {
+      "main": [
+        [
+          {
+            "node": "Asignar Ticket",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Poner en Espera",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Asignar Ticket": {
+      "main": [
+        [
+          {
+            "node": "Notificar Solicitante",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Notificar al Técnico",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Poner en Espera": {
+      "main": [
+        [
+          {
+            "node": "Notificar Espera",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "Registrar Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "c7ab1dfd-91a4-45b3-9949-a6fb3e6f9384",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "88d4a3cce03baefebbceee12fc093e7bfaed210b9853b16b13cd01d89edf431a"
+  },
+  "id": "ZBiqAdCOstUX9fmF",
+  "tags": []
+}

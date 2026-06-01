@@ -1,0 +1,225 @@
+{
+  "name": "WF3 - Cierre de Ticket",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "bfc3e805-a300-4e33-a3ee-c028ccdf9c41",
+        "formTitle": "Portal de Técnicos - Cierre de Ticket",
+        "formDescription": "Ingresa el ID del ticket y los detalles de la solución para cerrarlo.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "ID del Ticket a cerrar",
+              "fieldType": "number",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Observaciones / Solución Aplicada",
+              "fieldType": "textarea",
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "699124e2-72a9-48cf-94a3-4941cf3fda46",
+      "name": "Formulario Cierre",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.1,
+      "position": [
+        -3680,
+        224
+      ],
+      "webhookId": "bfc3e805-a300-4e33-a3ee-c028ccdf9c41"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM tickets WHERE id_ticket = {{ $json[\"ID del Ticket a cerrar\"] }} AND estado IN ('Asignado', 'En Progreso');",
+        "options": {}
+      },
+      "id": "6772e2a8-279c-4f22-a5e7-2d49c8aac71b",
+      "name": "Verificar Ticket",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.2,
+      "position": [
+        -3456,
+        224
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "LvneXKLeflg3RwvY",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.id_ticket }}",
+              "operation": "isNotEmpty"
+            }
+          ]
+        }
+      },
+      "id": "3715210d-9ffd-4f77-b4b5-2a4a58798a85",
+      "name": "¿Ticket válido?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -3232,
+        224
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE tickets SET estado = 'Cerrado', fecha_cierre = NOW(), observaciones = '{{ $('Formulario Cierre').item.json[\"Observaciones / Solución Aplicada\"] }}' WHERE id_ticket = {{ $json.id_ticket }};\nUPDATE tecnicos SET estado = 'Disponible' WHERE id_tecnico = {{ $json.id_tecnico }};\nINSERT INTO historial_tickets (id_ticket, estado_anterior, estado_nuevo, comentario, modificado_por) VALUES ({{ $json.id_ticket }}, '{{ $json.estado }}', 'Cerrado', '{{ $('Formulario Cierre').item.json[\"Observaciones / Solución Aplicada\"] }}', (SELECT nombre FROM tecnicos WHERE id_tecnico = {{ $json.id_tecnico }}));",
+        "options": {}
+      },
+      "id": "34f7563d-d583-40fe-b68c-07284bee02da",
+      "name": "Cerrar Ticket",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.2,
+      "position": [
+        -2992,
+        112
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "LvneXKLeflg3RwvY",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "helpdesk@tuinstitucion.com",
+        "toEmail": "={{ $('Verificar Ticket').item.json.correo_solicitante }}",
+        "subject": "=Ticket Resuelto #{{ $('Verificar Ticket').item.json.id_ticket }} - Help Desk",
+        "text": "=Hola {{ $('Verificar Ticket').item.json.nombre_solicitante }},\n\nTu solicitud de soporte ha sido marcada como RESUELTA por el técnico encargado.\n\nSolución Aplicada:\n{{ $('Formulario Cierre').item.json[\"Observaciones / Solución Aplicada\"] }}\n\n---\n¿Cómo fue la atención que recibiste? Tus comentarios nos ayudan a mejorar.\n👉 Califica la atención aquí: http://localhost:5678/webhook/encuesta?id_ticket={{ $('Verificar Ticket').item.json.id_ticket }}\n\nGracias por utilizar nuestro servicio de Help Desk.\n\nSaludos,\nEl equipo de Informática.",
+        "options": {}
+      },
+      "id": "fa06b114-bfa2-46c3-875d-34fe38ac3fe6",
+      "name": "Notificar Cierre",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2,
+      "position": [
+        -2752,
+        112
+      ],
+      "webhookId": "af0a3f7d-9f20-4bc1-b01a-31ce281279ee",
+      "credentials": {
+        "smtp": {
+          "id": "r9f9lK9CajmPe1mw",
+          "name": "SMTP account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "id": "b7be6ff5-bfcf-4da3-8034-010ca11b7f5c",
+      "name": "Error Trigger",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        -3456,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO logs_errores (workflow_name, nodo, mensaje_error) VALUES ('WF3 - Cierre de Ticket (Formulario)', '{{ $json.execution.lastNodeExecuted }}', '{{ $json.execution.error.message }}');",
+        "options": {}
+      },
+      "id": "a636fed8-f708-4334-939c-2d7b05f8dbcb",
+      "name": "Registrar Error",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.2,
+      "position": [
+        -3216,
+        480
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "LvneXKLeflg3RwvY",
+          "name": "Postgres account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Formulario Cierre": {
+      "main": [
+        [
+          {
+            "node": "Verificar Ticket",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verificar Ticket": {
+      "main": [
+        [
+          {
+            "node": "¿Ticket válido?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Ticket válido?": {
+      "main": [
+        [
+          {
+            "node": "Cerrar Ticket",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cerrar Ticket": {
+      "main": [
+        [
+          {
+            "node": "Notificar Cierre",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "Registrar Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "c39d8249-fa6e-4420-a44f-78577555e206",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "88d4a3cce03baefebbceee12fc093e7bfaed210b9853b16b13cd01d89edf431a"
+  },
+  "id": "kxaveDdaGzQntA3B",
+  "tags": []
+}

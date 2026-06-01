@@ -1,5 +1,3 @@
-version: '3.8'
-
 networks:
   helpdesk_net:
     driver: bridge
@@ -11,67 +9,39 @@ services:
     restart: unless-stopped
     ports:
       - "5678:5678"
+
     environment:
       - DB_TYPE=postgresdb
-      - DB_POSTGRESDB_HOST=postgres
+
+      # host.docker.internal permite a Docker acceder a localhost de tu computadora Windows
+      - DB_POSTGRESDB_HOST=host.docker.internal
       - DB_POSTGRESDB_PORT=5432
-      - DB_POSTGRESDB_DATABASE=${N8N_DB}
+      - DB_POSTGRESDB_DATABASE=${POSTGRES_DB}
       - DB_POSTGRESDB_USER=${POSTGRES_USER}
       - DB_POSTGRESDB_PASSWORD=${POSTGRES_PASSWORD}
+
       - N8N_BASIC_AUTH_ACTIVE=true
       - N8N_BASIC_AUTH_USER=${N8N_BASIC_AUTH_USER}
       - N8N_BASIC_AUTH_PASSWORD=${N8N_BASIC_AUTH_PASSWORD}
+
+      # CAMBIAR ESTAS LÍNEAS
       - N8N_HOST=localhost
       - N8N_PORT=5678
       - N8N_PROTOCOL=http
       - WEBHOOK_URL=http://localhost:5678/
+
+      # AGREGAR ESTA LÍNEA
+      - N8N_SECURE_COOKIE=false
+
     volumes:
       - n8n_data:/home/node/.n8n
       - ./data/files:/files
-    depends_on:
-      postgres:
-        condition: service_healthy
-    networks:
-      - helpdesk_net
 
-  postgres:
-    image: postgres:15
-    container_name: helpdesk_postgres
-    restart: unless-stopped
-    ports:
-      - "5432:5432"
-    environment:
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - POSTGRES_DB=${POSTGRES_DB}
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./init-db:/docker-entrypoint-initdb.d
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    networks:
-      - helpdesk_net
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
-  pgadmin:
-    image: dpage/pgadmin4:latest
-    container_name: helpdesk_pgadmin
-    restart: unless-stopped
-    ports:
-      - "8080:80"
-    environment:
-      - PGADMIN_DEFAULT_EMAIL=${PGADMIN_EMAIL}
-      - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_PASSWORD}
-    volumes:
-      - pgadmin_data:/var/lib/pgadmin
-    depends_on:
-      - postgres
     networks:
       - helpdesk_net
 
 volumes:
   n8n_data:
-  postgres_data:
-  pgadmin_data:

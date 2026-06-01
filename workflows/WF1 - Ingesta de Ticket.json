@@ -1,0 +1,282 @@
+{
+  "name": "WF1 - Ingesta de Ticket",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "19bb43fd-94a1-4d87-831a-d8b6ba343b35",
+      "name": "Error Trigger",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        -288,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "schema": "public",
+        "table": "logs_errores",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "workflow_name": "WF1 - Ingesta de Ticket",
+            "nodo": "={{ $json.execution.lastNodeExecuted || 'Desconocido' }}",
+            "mensaje_error": "={{ $json.execution.error.message || 'Error sin detalle' }}"
+          },
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "dff03811-0dd3-4d3a-861d-0fea9c974de7",
+      "name": "Registrar Error",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.2,
+      "position": [
+        -16,
+        192
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "LvneXKLeflg3RwvY",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "path": "3f1b614b-1de4-45ac-8473-59bfa93f72f4",
+        "formTitle": "Help Desk - Nuevo Ticket",
+        "formDescription": "Por favor, ingresa los detalles de tu solicitud de soporte.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Nombre del Solicitante",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Correo del Solicitante",
+              "fieldType": "email",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Dirección",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Dirección de Administración Financiera Integrada"
+                  },
+                  {
+                    "option": "Dirección de Recursos Humanos"
+                  },
+                  {
+                    "option": "Dirección de Servicios Públicos Municipales"
+                  },
+                  {
+                    "option": "Dirección Municipal de Planificación"
+                  },
+                  {
+                    "option": "Dirección Municipal de Agua y Saneamiento"
+                  },
+                  {
+                    "option": "Dirección de Ambiente e Infraestructura Saludable"
+                  },
+                  {
+                    "option": "Dirección Municipal de la Mujer"
+                  },
+                  {
+                    "option": "Dirección de la Policía Municipal de Tránsito"
+                  },
+                  {
+                    "option": "Jefatura de Policía Municipal"
+                  },
+                  {
+                    "option": "Jefatura de Bomberos Municipales"
+                  },
+                  {
+                    "option": "Secretaría Municipal"
+                  },
+                  {
+                    "option": "Juzgado de Asuntos Municipales y de Tránsito"
+                  },
+                  {
+                    "option": "Jefatura de Comunicación Social"
+                  },
+                  {
+                    "option": "Jefatura de Transportes"
+                  }
+                ]
+              },
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Prioridad",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Baja"
+                  },
+                  {
+                    "option": "Normal"
+                  },
+                  {
+                    "option": "Alta"
+                  },
+                  {
+                    "option": "Urgente"
+                  }
+                ]
+              },
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Descripción del Problema",
+              "fieldType": "textarea",
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "459cc655-b3f9-4fad-8d73-4696b40bd45d",
+      "name": "Formulario Web",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.1,
+      "position": [
+        -288,
+        -80
+      ],
+      "webhookId": "3f1b614b-1de4-45ac-8473-59bfa93f72f4"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO tickets (nombre_solicitante, correo_solicitante, departamento, categoria, prioridad, descripcion, estado) VALUES ('{{ $json[\"Nombre del Solicitante\"] }}', '{{ $json[\"Correo del Solicitante\"] }}', '{{ $json[\"Dirección\"] }}', 'No especificada', '{{ $json[\"Prioridad\"] }}', '{{ $json[\"Descripción del Problema\"] }}', 'Pendiente') RETURNING *;",
+        "options": {}
+      },
+      "id": "11350b1e-14b6-423e-b215-ce8a78ac3694",
+      "name": "Insertar Ticket",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.2,
+      "position": [
+        -16,
+        -80
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "LvneXKLeflg3RwvY",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO historial_tickets (id_ticket, estado_nuevo, modificado_por) VALUES ({{ $json.id_ticket }}, 'Pendiente', 'Sistema');",
+        "options": {}
+      },
+      "id": "efff444b-0d60-4a26-84a8-b7bd84c505fb",
+      "name": "Guardar Historial",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.2,
+      "position": [
+        192,
+        -80
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "LvneXKLeflg3RwvY",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "quimyatjosuesaul@gmail.com",
+        "toEmail": "={{ $('Insertar Ticket').item.json.correo_solicitante }}",
+        "subject": "=Ticket Recibido #{{ $('Insertar Ticket').item.json.id_ticket }} - Help Desk",
+        "text": "=Hola {{ $('Insertar Ticket').item.json.nombre_solicitante }},\n\nHemos recibido tu solicitud de soporte de la {{ $('Insertar Ticket').item.json.departamento }}.\n\nTu número de ticket es el #{{ $('Insertar Ticket').item.json.id_ticket }}.\n\nPrioridad: {{ $('Insertar Ticket').item.json.prioridad }}\nDescripción: {{ $('Insertar Ticket').item.json.descripcion }}\n\nEn breve un técnico será asignado a tu caso.\n\nSaludos,\nEl equipo de Informática.",
+        "options": {}
+      },
+      "id": "1e0b6375-3edf-4cb2-80d0-c90971421273",
+      "name": "Notificar Solicitante",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2,
+      "position": [
+        416,
+        -80
+      ],
+      "webhookId": "de9a2cae-6c57-4ceb-a737-d24be1d9a52d",
+      "credentials": {
+        "smtp": {
+          "id": "r9f9lK9CajmPe1mw",
+          "name": "SMTP account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "Registrar Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formulario Web": {
+      "main": [
+        [
+          {
+            "node": "Insertar Ticket",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insertar Ticket": {
+      "main": [
+        [
+          {
+            "node": "Guardar Historial",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardar Historial": {
+      "main": [
+        [
+          {
+            "node": "Notificar Solicitante",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "e90a0e07-ff93-4ef3-bc02-4e474eaef9c9",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "88d4a3cce03baefebbceee12fc093e7bfaed210b9853b16b13cd01d89edf431a"
+  },
+  "id": "wCGCjP67lrcHAztY",
+  "tags": []
+}

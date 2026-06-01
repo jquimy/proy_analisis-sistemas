@@ -1,0 +1,71 @@
+{
+  "name": "WF4a - Encuesta Servir Formulario",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "encuesta",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "2fbfb15d-5494-41e2-81c4-fb0c6b878daf",
+      "name": "Recibir Link Encuesta",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -160,
+        -48
+      ],
+      "webhookId": "encuesta-get-helpdesk"
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "=<!DOCTYPE html>\n<html lang=\"es\">\n<head>\n  <meta charset=\"UTF-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n  <title>Encuesta de Satisfacción - Help Desk</title>\n  <style>\n    * { box-sizing: border-box; margin: 0; padding: 0; }\n    body { font-family: 'Segoe UI', sans-serif; background: #f0f4f8; display: flex; justify-content: center; align-items: center; min-height: 100vh; }\n    .card { background: #fff; border-radius: 12px; padding: 40px; max-width: 480px; width: 100%; box-shadow: 0 4px 16px rgba(0,0,0,0.1); }\n    h1 { font-size: 1.4rem; color: #1a1a2e; margin-bottom: 6px; }\n    .subtitle { color: #666; font-size: 0.9rem; margin-bottom: 28px; }\n    .ticket-badge { background: #e8f4fd; border: 1px solid #bee3f8; color: #2b6cb0; padding: 8px 14px; border-radius: 8px; display: inline-block; font-weight: 600; margin-bottom: 24px; font-size: 0.95rem; }\n    label { display: block; font-weight: 600; color: #333; margin-bottom: 8px; font-size: 0.92rem; }\n    select, textarea { width: 100%; padding: 10px 14px; border: 1px solid #ddd; border-radius: 8px; font-size: 0.95rem; margin-bottom: 20px; transition: border 0.2s; }\n    select:focus, textarea:focus { outline: none; border-color: #4299e1; }\n    textarea { resize: vertical; min-height: 90px; }\n    button { width: 100%; background: #3182ce; color: white; padding: 12px; border: none; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: background 0.2s; }\n    button:hover { background: #2b6cb0; }\n    .footer { text-align: center; color: #999; font-size: 0.8rem; margin-top: 20px; }\n  </style>\n</head>\n<body>\n  <div class=\"card\">\n    <h1>⭐ Encuesta de Satisfacción</h1>\n    <p class=\"subtitle\">Tu opinión nos ayuda a mejorar el servicio de soporte técnico.</p>\n    <div class=\"ticket-badge\">🎫 Ticket #{{ $json.query.id_ticket }}</div>\n    <form method=\"POST\" action=\"http://localhost:5678/webhook/encuesta-submit\">\n      <input type=\"hidden\" name=\"id_ticket\" value=\"{{ $json.query.id_ticket }}\">\n      <label for=\"calificacion\">¿Cómo calificarías la atención recibida?</label>\n      <select name=\"calificacion\" id=\"calificacion\" required>\n        <option value=\"\" disabled selected>Selecciona una opción...</option>\n        <option value=\"Excelente\">⭐⭐⭐⭐⭐ Excelente</option>\n        <option value=\"Buena\">⭐⭐⭐⭐ Buena</option>\n        <option value=\"Regular\">⭐⭐⭐ Regular</option>\n        <option value=\"Mala\">⭐ Mala</option>\n      </select>\n      <label for=\"comentario\">Comentarios adicionales (opcional)</label>\n      <textarea name=\"comentario\" id=\"comentario\" placeholder=\"Escribe aquí tus comentarios...\"></textarea>\n      <button type=\"submit\">Enviar Calificación</button>\n    </form>\n    <p class=\"footer\">Municipalidad de San Juan Chamelco — Sistema de Help Desk</p>\n  </div>\n</body>\n</html>",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "text/html; charset=utf-8"
+              }
+            ]
+          }
+        }
+      },
+      "id": "7578f8d0-9f20-449d-b2d2-a9a31269db3c",
+      "name": "Servir Formulario HTML",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        112,
+        -48
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Recibir Link Encuesta": {
+      "main": [
+        [
+          {
+            "node": "Servir Formulario HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "eb76e081-ed97-4ed0-9279-3ada7695a334",
+  "meta": {
+    "instanceId": "88d4a3cce03baefebbceee12fc093e7bfaed210b9853b16b13cd01d89edf431a"
+  },
+  "id": "PhLXl0BCmCXzgD8N",
+  "tags": []
+}
